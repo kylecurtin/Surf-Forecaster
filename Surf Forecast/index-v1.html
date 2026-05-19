@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Surf Forecaster</title>
+<style>
+  :root {
+    --bg-0: #04111d;
+    --bg-1: #0a2540;
+    --bg-2: #103a63;
+    --foam: #e8f4ff;
+    --foam-dim: #a9c5dc;
+    --accent: #4ad6ff;
+    --accent-2: #2a8df0;
+    --gold: #ffd166;
+    --good: #6ee7b7;
+    --warn: #fbbf24;
+    --bad: #f87171;
+    --card: rgba(255,255,255,0.06);
+    --card-strong: rgba(255,255,255,0.10);
+    --border: rgba(255,255,255,0.12);
+    --shadow: 0 10px 30px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    color: var(--foam);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(74,214,255,0.25), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(42,141,240,0.25), transparent 60%),
+      linear-gradient(180deg, #04111d 0%, #0a2540 60%, #103a63 100%);
+    background-attachment: fixed;
+    overflow-x: hidden;
+  }
+
+  /* Animated wave backdrop */
+  .waves {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.35;
+  }
+  .waves svg { width: 100%; height: 100%; }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+  }
+
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: grid; place-items: center;
+    box-shadow: var(--shadow);
+    font-size: 22px;
+  }
+  h1 {
+    margin: 0;
+    font-size: 22px;
+    letter-spacing: 0.5px;
+  }
+  .sub {
+    color: var(--foam-dim);
+    font-size: 13px;
+  }
+
+  .search {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 6px 6px 14px;
+    backdrop-filter: blur(10px);
+    min-width: 280px;
+  }
+  .search input {
+    background: transparent;
+    border: 0;
+    outline: 0;
+    color: var(--foam);
+    font-size: 14px;
+    flex: 1;
+    padding: 8px 4px;
+  }
+  .search input::placeholder { color: var(--foam-dim); }
+  .search button {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #04111d;
+    font-weight: 600;
+    border: 0;
+    border-radius: 999px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .search button:hover { filter: brightness(1.07); }
+
+  .spots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 24px;
+  }
+  .chip {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--foam);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.05s;
+  }
+  .chip:hover { background: var(--card-strong); }
+  .chip.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border-color: transparent;
+    color: #04111d;
+    font-weight: 600;
+  }
+
+  .location-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .location-name {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  .location-meta {
+    color: var(--foam-dim);
+    font-size: 13px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 800px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 18px;
+    backdrop-filter: blur(12px);
+    box-shadow: var(--shadow);
+  }
+  .card h2 {
+    margin: 0 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--foam-dim);
+  }
+
+  .now {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 18px;
+    align-items: center;
+  }
+  .rating {
+    display: grid;
+    place-items: center;
+    width: 130px; height: 130px;
+    border-radius: 50%;
+    background: conic-gradient(var(--accent) calc(var(--pct,0) * 1%), rgba(255,255,255,0.08) 0);
+    position: relative;
+  }
+  .rating::before {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #0a2540, #04111d);
+  }
+  .rating-inner {
+    position: relative;
+    text-align: center;
+  }
+  .rating-score {
+    font-size: 38px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .rating-label {
+    font-size: 11px;
+    color: var(--foam-dim);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .stat {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .stat .k {
+    font-size: 11px;
+    color: var(--foam-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .stat .v {
+    font-size: 18px;
+    font-weight: 600;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .arrow {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    position: relative;
+  }
+  .arrow::after {
+    content: "";
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 0; height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 8px solid var(--accent);
+    transform: translate(-50%, -60%) rotate(var(--dir, 0deg));
+    transform-origin: 50% 60%;
+  }
+
+  .quality-good { color: var(--good); }
+  .quality-fair { color: var(--gold); }
+  .quality-poor { color: var(--bad); }
+
+  .hourly {
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  .hourly-row {
+    display: flex;
+    gap: 8px;
+    padding-bottom: 6px;
+  }
+  .hour {
+    flex: 0 0 auto;
+    width: 64px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 6px;
+    text-align: center;
+  }
+  .hour .t { font-size: 11px; color: var(--foam-dim); }
+  .hour .h { font-size: 16px; font-weight: 600; margin: 6px 0 2px; }
+  .hour .p { font-size: 11px; color: var(--foam-dim); }
+  .hour .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin: 6px auto 0;
+  }
+
+  .days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+  }
+  @media (max-width: 720px) {
+    .days { grid-template-columns: repeat(2, 1fr); }
+  }
+  .day {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.05s;
+  }
+  .day:hover { background: var(--card-strong); }
+  .day .d { font-size: 11px; color: var(--foam-dim); letter-spacing: 1px; text-transform: uppercase; }
+  .day .v { font-size: 20px; font-weight: 700; margin: 6px 0 2px; }
+  .day .r { font-size: 11px; color: var(--foam-dim); }
+  .day .bar {
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.08);
+    margin-top: 8px;
+    overflow: hidden;
+  }
+  .day .bar > div {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    transition: width 0.4s ease;
+  }
+
+  .footer {
+    text-align: center;
+    color: var(--foam-dim);
+    font-size: 12px;
+    margin-top: 24px;
+  }
+  .footer a { color: var(--accent); text-decoration: none; }
+
+  .loading, .error {
+    text-align: center;
+    padding: 30px;
+    color: var(--foam-dim);
+  }
+  .error { color: var(--bad); }
+
+  .spinner {
+    width: 22px; height: 22px;
+    border: 2px solid rgba(255,255,255,0.15);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    display: inline-block;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="waves" aria-hidden="true">
+  <svg viewBox="0 0 1440 800" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="wg1" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#4ad6ff" stop-opacity="0.0"/>
+        <stop offset="100%" stop-color="#4ad6ff" stop-opacity="0.5"/>
+      </linearGradient>
+      <linearGradient id="wg2" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#2a8df0" stop-opacity="0.0"/>
+        <stop offset="100%" stop-color="#2a8df0" stop-opacity="0.6"/>
+      </linearGradient>
+    </defs>
+    <path fill="url(#wg2)" d="M0,520 C240,460 480,580 720,520 C960,460 1200,580 1440,520 L1440,800 L0,800 Z">
+      <animate attributeName="d"
+        dur="9s" repeatCount="indefinite"
+        values="
+          M0,520 C240,460 480,580 720,520 C960,460 1200,580 1440,520 L1440,800 L0,800 Z;
+          M0,540 C240,600 480,460 720,540 C960,620 1200,460 1440,540 L1440,800 L0,800 Z;
+          M0,520 C240,460 480,580 720,520 C960,460 1200,580 1440,520 L1440,800 L0,800 Z" />
+    </path>
+    <path fill="url(#wg1)" d="M0,620 C240,560 480,680 720,620 C960,560 1200,680 1440,620 L1440,800 L0,800 Z">
+      <animate attributeName="d"
+        dur="11s" repeatCount="indefinite"
+        values="
+          M0,620 C240,560 480,680 720,620 C960,560 1200,680 1440,620 L1440,800 L0,800 Z;
+          M0,640 C240,700 480,560 720,640 C960,720 1200,560 1440,640 L1440,800 L0,800 Z;
+          M0,620 C240,560 480,680 720,620 C960,560 1200,680 1440,620 L1440,800 L0,800 Z" />
+    </path>
+  </svg>
+</div>
+
+<div class="container">
+  <header>
+    <div class="brand">
+      <div class="logo">🌊</div>
+      <div>
+        <h1>Surf Forecaster</h1>
+        <div class="sub">Live wave, swell & wind conditions</div>
+      </div>
+    </div>
+    <form class="search" id="search-form" autocomplete="off">
+      <input id="search-input" type="text" placeholder="Search any coastal town..." />
+      <button type="submit">Go</button>
+    </form>
+  </header>
+
+  <div class="spots" id="spots"></div>
+
+  <div class="location-bar">
+    <div class="location-name" id="loc-name">—</div>
+    <div class="location-meta" id="loc-meta"></div>
+  </div>
+
+  <div id="status" class="loading"><span class="spinner"></span>Loading surf data…</div>
+
+  <div id="content" class="hidden">
+    <div class="grid">
+      <div class="card">
+        <h2>Current Conditions</h2>
+        <div class="now">
+          <div class="rating" id="rating">
+            <div class="rating-inner">
+              <div class="rating-score" id="rating-score">—</div>
+              <div class="rating-label" id="rating-label">—</div>
+            </div>
+          </div>
+          <div class="stats">
+            <div class="stat"><div class="k">Wave Height</div><div class="v" id="s-wave">—</div></div>
+            <div class="stat"><div class="k">Period</div><div class="v" id="s-period">—</div></div>
+            <div class="stat"><div class="k">Swell Dir</div><div class="v" id="s-swell">—</div></div>
+            <div class="stat"><div class="k">Wind</div><div class="v" id="s-wind">—</div></div>
+            <div class="stat"><div class="k">Wind Dir</div><div class="v" id="s-winddir">—</div></div>
+            <div class="stat"><div class="k">Water Temp</div><div class="v" id="s-temp">—</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Today · Hourly</h2>
+        <div class="hourly">
+          <div class="hourly-row" id="hourly"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>7-Day Forecast</h2>
+      <div class="days" id="days"></div>
+    </div>
+
+    <div class="footer">
+      Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> · Marine + Weather APIs
+    </div>
+  </div>
+</div>
+
+<script>
+  // -------- Surf spots (preset) --------
+  const SPOTS = [
+    { name: "Pipeline, HI",      lat: 21.6645, lon: -158.0533 },
+    { name: "Mavericks, CA",     lat: 37.4955, lon: -122.5008 },
+    { name: "Trestles, CA",      lat: 33.3833, lon: -117.5933 },
+    { name: "Malibu, CA",        lat: 34.0381, lon: -118.6775 },
+    { name: "Rockaway, NY",      lat: 40.5800, lon: -73.8200 },
+    { name: "Bondi, AU",         lat: -33.8915, lon: 151.2767 },
+    { name: "Jeffreys Bay, ZA",  lat: -34.0492, lon: 24.9135 },
+    { name: "Nazaré, PT",        lat: 39.6018, lon: -9.0775 },
+    { name: "Hossegor, FR",      lat: 43.6500, lon: -1.4333 },
+    { name: "Uluwatu, ID",       lat: -8.8154, lon: 115.0883 }
+  ];
+
+  // -------- Helpers --------
+  const $ = (id) => document.getElementById(id);
+
+  const COMPASS = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+  const degToCompass = (d) => {
+    if (d == null || isNaN(d)) return "—";
+    return COMPASS[Math.round(((d % 360) / 22.5)) % 16];
+  };
+
+  const mToFt = (m) => m * 3.28084;
+  const fmtWave = (m) => m == null ? "—" : `${mToFt(m).toFixed(1)} ft`;
+  const fmtWind = (k) => k == null ? "—" : `${Math.round(k)} kt`;
+  const fmtTemp = (c) => c == null ? "—" : `${Math.round(c * 9/5 + 32)}°F`;
+  const fmtSec  = (s) => s == null ? "—" : `${s.toFixed(0)}s`;
+
+  // Surf quality scoring 0-100
+  function scoreSurf(waveM, periodS, windKt, windDeg, swellDeg) {
+    if (waveM == null) return 0;
+    const ft = mToFt(waveM);
+    // height: ideal 3-8ft
+    let hs;
+    if (ft < 1) hs = 10;
+    else if (ft < 2) hs = 45;
+    else if (ft < 3) hs = 70;
+    else if (ft <= 8) hs = 95;
+    else if (ft <= 12) hs = 75;
+    else hs = 45;
+
+    // period: longer is better (groundswell)
+    let ps;
+    if (periodS == null) ps = 50;
+    else if (periodS < 6) ps = 30;
+    else if (periodS < 9) ps = 60;
+    else if (periodS < 12) ps = 80;
+    else ps = 95;
+
+    // wind: lower is better; offshore bonus depends on coast (unknown), use light wind only
+    let ws;
+    const w = windKt ?? 0;
+    if (w < 5) ws = 95;
+    else if (w < 10) ws = 75;
+    else if (w < 15) ws = 50;
+    else if (w < 20) ws = 30;
+    else ws = 15;
+
+    return Math.round(hs * 0.45 + ps * 0.30 + ws * 0.25);
+  }
+
+  function qualityLabel(score) {
+    if (score >= 75) return { label: "Firing", cls: "quality-good" };
+    if (score >= 55) return { label: "Good",   cls: "quality-good" };
+    if (score >= 35) return { label: "Fair",   cls: "quality-fair" };
+    return { label: "Poor", cls: "quality-poor" };
+  }
+
+  function setRating(score) {
+    const el = $("rating");
+    el.style.setProperty("--pct", Math.max(0, Math.min(100, score)));
+    $("rating-score").textContent = score;
+    const q = qualityLabel(score);
+    const lbl = $("rating-label");
+    lbl.textContent = q.label;
+    lbl.className = "rating-label " + q.cls;
+  }
+
+  // -------- Spot chips --------
+  function renderSpots(activeIndex) {
+    const wrap = $("spots");
+    wrap.innerHTML = "";
+    SPOTS.forEach((s, i) => {
+      const c = document.createElement("div");
+      c.className = "chip" + (i === activeIndex ? " active" : "");
+      c.textContent = s.name;
+      c.onclick = () => loadSpot(s);
+      wrap.appendChild(c);
+    });
+  }
+
+  // -------- API calls --------
+  async function fetchSurf(lat, lon) {
+    const marineUrl = `https://marine-api.open-meteo.com/v1/marine` +
+      `?latitude=${lat}&longitude=${lon}` +
+      `&hourly=wave_height,wave_period,wave_direction,swell_wave_height,swell_wave_period,swell_wave_direction,sea_surface_temperature` +
+      `&daily=wave_height_max,wave_period_max,wave_direction_dominant` +
+      `&timezone=auto&forecast_days=7`;
+
+    const weatherUrl = `https://api.open-meteo.com/v1/forecast` +
+      `?latitude=${lat}&longitude=${lon}` +
+      `&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m` +
+      `&daily=wind_speed_10m_max,wind_direction_10m_dominant` +
+      `&wind_speed_unit=kn&timezone=auto&forecast_days=7`;
+
+    const [marineRes, weatherRes] = await Promise.all([
+      fetch(marineUrl), fetch(weatherUrl)
+    ]);
+    if (!marineRes.ok) throw new Error("Marine data unavailable for this location.");
+    if (!weatherRes.ok) throw new Error("Weather data unavailable for this location.");
+    return {
+      marine: await marineRes.json(),
+      weather: await weatherRes.json()
+    };
+  }
+
+  async function geocode(q) {
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=en&format=json`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error("Search failed.");
+    const j = await r.json();
+    if (!j.results || !j.results.length) throw new Error("No results found.");
+    const g = j.results[0];
+    return {
+      name: [g.name, g.admin1, g.country_code].filter(Boolean).join(", "),
+      lat: g.latitude, lon: g.longitude
+    };
+  }
+
+  // -------- Rendering --------
+  function findNowIndex(times) {
+    const now = new Date();
+    let bestI = 0, bestD = Infinity;
+    for (let i = 0; i < times.length; i++) {
+      const d = Math.abs(new Date(times[i]) - now);
+      if (d < bestD) { bestD = d; bestI = i; }
+    }
+    return bestI;
+  }
+
+  function render(data, locName, locMeta) {
+    $("loc-name").textContent = locName;
+    $("loc-meta").textContent = locMeta;
+
+    const mh = data.marine.hourly;
+    const wh = data.weather.hourly;
+    const md = data.marine.daily;
+    const wd = data.weather.daily;
+
+    const nowI = findNowIndex(mh.time);
+    const wave = mh.wave_height[nowI];
+    const period = mh.swell_wave_period?.[nowI] ?? mh.wave_period[nowI];
+    const swellDir = mh.swell_wave_direction?.[nowI] ?? mh.wave_direction[nowI];
+    const sst = mh.sea_surface_temperature?.[nowI];
+
+    // align weather hour to marine hour
+    const wNowI = findNowIndex(wh.time);
+    const wind = wh.wind_speed_10m[wNowI];
+    const windDir = wh.wind_direction_10m[wNowI];
+
+    $("s-wave").textContent = fmtWave(wave);
+    $("s-period").textContent = fmtSec(period);
+    $("s-swell").innerHTML = `${degToCompass(swellDir)} <span class="arrow" style="--dir:${(swellDir||0)+180}deg"></span>`;
+    $("s-wind").textContent = fmtWind(wind);
+    $("s-winddir").innerHTML = `${degToCompass(windDir)} <span class="arrow" style="--dir:${(windDir||0)+180}deg"></span>`;
+    $("s-temp").textContent = fmtTemp(sst);
+
+    const score = scoreSurf(wave, period, wind, windDir, swellDir);
+    setRating(score);
+
+    // Hourly (next 24h from now)
+    const hourly = $("hourly");
+    hourly.innerHTML = "";
+    for (let i = nowI; i < Math.min(nowI + 24, mh.time.length); i++) {
+      const t = new Date(mh.time[i]);
+      const h = mh.wave_height[i];
+      const p = mh.swell_wave_period?.[i] ?? mh.wave_period[i];
+      const w = wh.wind_speed_10m[i] ?? 0;
+      const wdg = wh.wind_direction_10m[i] ?? 0;
+      const sc = scoreSurf(h, p, w, wdg, mh.wave_direction[i]);
+      const q = qualityLabel(sc);
+      const color = sc >= 75 ? "var(--good)" : sc >= 55 ? "var(--good)" : sc >= 35 ? "var(--gold)" : "var(--bad)";
+      const cell = document.createElement("div");
+      cell.className = "hour";
+      cell.innerHTML = `
+        <div class="t">${t.getHours().toString().padStart(2,"0")}:00</div>
+        <div class="h">${h == null ? "—" : mToFt(h).toFixed(1)}<span style="font-size:10px;color:var(--foam-dim);"> ft</span></div>
+        <div class="p">${p == null ? "—" : p.toFixed(0)+"s"}</div>
+        <div class="dot" style="background:${color}"></div>
+      `;
+      hourly.appendChild(cell);
+    }
+
+    // 7-day
+    const days = $("days");
+    days.innerHTML = "";
+    const maxWave = Math.max(...md.wave_height_max.filter(v => v != null), 0.1);
+    for (let i = 0; i < md.time.length; i++) {
+      const d = new Date(md.time[i]);
+      const wMax = md.wave_height_max[i];
+      const pMax = md.wave_period_max?.[i];
+      const windMax = wd.wind_speed_10m_max?.[i] ?? 0;
+      const sc = scoreSurf(wMax, pMax, windMax, 0, 0);
+      const q = qualityLabel(sc);
+      const dayName = d.toLocaleDateString(undefined, { weekday: "short" });
+      const dayNum = d.getDate();
+      const pct = wMax == null ? 0 : (wMax / maxWave) * 100;
+      const cell = document.createElement("div");
+      cell.className = "day";
+      cell.innerHTML = `
+        <div class="d">${dayName} ${dayNum}</div>
+        <div class="v">${wMax == null ? "—" : mToFt(wMax).toFixed(1)}<span style="font-size:11px;color:var(--foam-dim);"> ft</span></div>
+        <div class="r ${q.cls}">${q.label} · ${pMax ? pMax.toFixed(0)+"s" : "—"}</div>
+        <div class="bar"><div style="width:${pct}%"></div></div>
+      `;
+      days.appendChild(cell);
+    }
+
+    $("status").classList.add("hidden");
+    $("content").classList.remove("hidden");
+  }
+
+  function showError(msg) {
+    const s = $("status");
+    s.classList.remove("hidden");
+    s.className = "error";
+    s.textContent = msg;
+    $("content").classList.add("hidden");
+  }
+
+  function showLoading() {
+    const s = $("status");
+    s.classList.remove("hidden");
+    s.className = "loading";
+    s.innerHTML = `<span class="spinner"></span>Loading surf data…`;
+    $("content").classList.add("hidden");
+  }
+
+  // -------- Orchestration --------
+  async function loadSpot(spot) {
+    const idx = SPOTS.findIndex(s => s.name === spot.name);
+    renderSpots(idx);
+    showLoading();
+    try {
+      const data = await fetchSurf(spot.lat, spot.lon);
+      render(data, spot.name, `${spot.lat.toFixed(3)}, ${spot.lon.toFixed(3)}`);
+    } catch (e) {
+      showError(e.message || "Couldn't load forecast.");
+    }
+  }
+
+  async function loadQuery(q) {
+    renderSpots(-1);
+    showLoading();
+    try {
+      const g = await geocode(q);
+      const data = await fetchSurf(g.lat, g.lon);
+      render(data, g.name, `${g.lat.toFixed(3)}, ${g.lon.toFixed(3)}`);
+    } catch (e) {
+      showError(e.message || "Couldn't load forecast.");
+    }
+  }
+
+  // -------- Init --------
+  $("search-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const q = $("search-input").value.trim();
+    if (q) loadQuery(q);
+  });
+
+  renderSpots(0);
+  loadSpot(SPOTS[0]);
+</script>
+
+</body>
+</html>
